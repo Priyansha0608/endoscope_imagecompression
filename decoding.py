@@ -2,59 +2,6 @@ import numpy as np
 from jpeg_compression import forward_compress
 import cv2 as cv
 
-#zig-zag encoding to convert 2-d into 1-d 
-def constructZigzagArray(mat):  
-    N = mat.shape[0]
-    lstResult = []
-    iPlus = False
-    tPlus = True
-    t = 0
-    j = 1
-    
-    while True:
-        if tPlus:
-            if iPlus:
-                for i in range(t+1):
-                    lstResult.append(mat[i, t-i])
-            else:
-                for i in range(t, -1, -1):
-                    lstResult.append(mat[i, t-i])
-            t += 1
-            iPlus = not iPlus
-
-            if t == N:
-                tPlus = not tPlus
-        else:
-            k = t-1
-            if iPlus:
-                for i in range(j, t):
-                    lstResult.append(mat[i, k])
-                    k -= 1
-            else:
-                for i in range(j, t):
-                    lstResult.append(mat[k, i])
-                    k -= 1
-            j += 1
-            iPlus = not iPlus
-            if j>t:
-                break
-    return np.array(lstResult)
-
-def changeToHexDigit(num):
-    if (num==10) or (num=='10'):
-        return 'A'
-    elif (num==11) or (num=='11'):
-        return 'B'
-    elif (num==12) or (num=='12'):
-        return 'C'
-    elif (num==13) or (num=='13'):
-        return 'D'
-    elif (num==14) or (num=='14'):
-        return 'E'
-    elif (num==15) or (num=='15'):
-        return 'F'
-    return str(num)
-
 def findDCCode(DC,DC_Codes,category):
     #print(DC_Codes)
     #print(category)
@@ -115,7 +62,8 @@ def computeDctJpegDecompression(result, file):
             value = None
             if(category == 0):
                 value = 0
-            else: 
+            else:
+                # finding the position
                 position_code = ''
                 for j in range(category):
                     position_code += result[i+j+1]
@@ -134,18 +82,20 @@ def computeDctJpegDecompression(result, file):
         
             #file.write(str(value))
         elif(code in accat_code and looking_EOB):
-            if(code == '1010'):
+            if(code == '1010'): #EOB
                 file.write(str(mat))
                 file.write(' EOB\n\n')
                 
-                #change from 2D to 1D
-                #reverse transform the 2D matrix
-                #update imgmat
+                #parts left to do here:
+                    #change from 2D to 1D
+                    #reverse transform the 2D matrix
+                    #update imgmat
                 
                 mat = []
                 code = ''
                 looking_EOB = False
             else:
+                #AC code determined now
                 indx = accat_code.index(code)
                 category = indx%11
                 run = (indx-category)/11
@@ -164,6 +114,7 @@ def computeDctJpegDecompression(result, file):
                 mat.append(value)
                 code = ''
         else:
+            #keep running through bits till code found
             i+=1
             if(i == len(result)):
                 break
